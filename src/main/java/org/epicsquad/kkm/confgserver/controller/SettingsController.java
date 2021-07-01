@@ -1,10 +1,10 @@
 package org.epicsquad.kkm.confgserver.controller;
 
+import org.epicsquad.kkm.confgserver.model.SettingsUpdateCommand;
 import org.epicsquad.kkm.confgserver.service.SettingsService;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.util.Properties;
 
 @RestController
@@ -20,13 +20,11 @@ public class SettingsController {
     @GetMapping()
     public PropertiesPropertySource getSettings(@RequestParam String fileName) {
         Properties properties = settingsService.getSettings(fileName);
-
         return new PropertiesPropertySource(fileName, properties);
     }
 
-
     @PostMapping()
-    public void update(@RequestParam String fileName, @RequestBody Map<String, Object> settings){
-        settingsService.updateSettings(fileName, settings);
+    public void update(@RequestParam String fileName, @RequestBody SettingsUpdateCommand settingsUpdateCommand) {
+        settingsService.updateSettings(fileName, settingsUpdateCommand);
     }
 }
