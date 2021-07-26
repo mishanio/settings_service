@@ -1,5 +1,6 @@
 package org.epicsquad.kkm.confgserver.service;
 
+import org.epicsquad.kkm.confgserver.model.HierarchyPropertySource;
 import org.epicsquad.kkm.confgserver.model.SettingsUpdateCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,19 +9,34 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 public class SettingsService {
 
     private final FileRepository fileRepository;
     private static final String PROPERTIES_SUFFIX = ".properties";
     private static final String SETTINGS_FOLDER = "settings";
+    private final static String IMPORT_PROPERTIES = "_imports";
     private final static Logger log = LoggerFactory.getLogger(SettingsService.class);
 
 
     public SettingsService(FileRepository fileRepository) {
         this.fileRepository = fileRepository;
+    }
+
+    public HierarchyPropertySource getPropertySourceHierarchy(String fileName) {
+        Properties settings = getSettings(fileName);
+        List<HierarchyPropertySource> importedSources =
+                Arrays.stream(settings.getProperty(IMPORT_PROPERTIES, "").split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .map(this::getPropertySourceHierarchy)
+                        .collect(Collectors.toList());
+        return new HierarchyPropertySource(fileName, settings, importedSources);
     }
 
     public Properties getSettings(String fileName) {

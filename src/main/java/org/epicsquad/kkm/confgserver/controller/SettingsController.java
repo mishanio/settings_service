@@ -1,11 +1,9 @@
 package org.epicsquad.kkm.confgserver.controller;
 
+import org.epicsquad.kkm.confgserver.model.HierarchyPropertySource;
 import org.epicsquad.kkm.confgserver.model.SettingsUpdateCommand;
 import org.epicsquad.kkm.confgserver.service.SettingsService;
-import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Properties;
 
 @RestController
 @RequestMapping("api/v1/settings")
@@ -18,9 +16,8 @@ public class SettingsController {
     }
 
     @GetMapping()
-    public PropertiesPropertySource getSettings(@RequestParam String fileName) {
-        Properties properties = settingsService.getSettings(fileName);
-        return new PropertiesPropertySource(fileName, properties);
+    public HierarchyPropertySource getSettings(@RequestParam String fileName) {
+        return settingsService.getPropertySourceHierarchy(fileName);
     }
 
     @PostMapping()

@@ -47,6 +47,7 @@ public class FileRepository {
         assert (baseDir.isDirectory());
         deleteBaseDirIfExists(baseDir);
         CloneCommand cloneCommand = Git.cloneRepository()
+                .setCredentialsProvider(credentialsProvider)
                 .setURI(gitSettings.getUri())
                 .setDirectory(baseDir)
                 .setBranch(gitSettings.getBranch());
