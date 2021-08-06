@@ -1,10 +1,8 @@
 package org.epicsquad.kkm.confgserver.service;
 
-import org.eclipse.jgit.api.CloneCommand;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.PushCommand;
-import org.eclipse.jgit.api.RemoteAddCommand;
+import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.URIish;
@@ -19,13 +17,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 
-public class FileRepository {
-    private final static Logger log = LoggerFactory.getLogger(FileRepository.class);
+public class FileProviderRepository {
+    private final static Logger log = LoggerFactory.getLogger(FileProviderRepository.class);
 
     private final GitSettings gitSettings;
     private final CredentialsProvider credentialsProvider;
 
-    public FileRepository(GitSettings gitSettings) {
+    public FileProviderRepository(GitSettings gitSettings) {
         this.gitSettings = gitSettings;
         credentialsProvider = new UsernamePasswordCredentialsProvider(gitSettings.getLogin(),
                 gitSettings.getPassword());
@@ -36,9 +34,21 @@ public class FileRepository {
     }
 
     public File getFile(String fileName) {
+        pull();
         String baseDir = gitSettings.getBaseDir().getAbsolutePath();
         String environment = gitSettings.getEnvironment();
         return new File(baseDir + File.separator + environment + File.separator + fileName);
+    }
+
+    private void pull() {
+        try {
+            Git git = Git.open(gitSettings.getBaseDir());
+            PullCommand pullCmd = git.pull()
+                    .setCredentialsProvider(credentialsProvider);
+            pullCmd.call();
+        } catch (IOException | GitAPIException e) {
+            log.error("error during pull command", e);
+        }
     }
 
 
@@ -67,13 +77,13 @@ public class FileRepository {
     }
 
     public void saveFile(String filePath, CommitInfo commitInfo) {
+        pull();
         try {
             Git git = Git.open(gitSettings.getBaseDir());
             git.add()
                     .addFilepattern(gitSettings.getEnvironment() + "/" + filePath)
                     .call();
             git.commit()
-//                    .setAll(true)
                     .setMessage(commitInfo.getReason())
                     .setAuthor(commitInfo.getPrincipal(), commitInfo.getPrincipal())
                     .call();

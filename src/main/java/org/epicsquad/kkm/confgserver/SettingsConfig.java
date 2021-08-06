@@ -1,6 +1,6 @@
 package org.epicsquad.kkm.confgserver;
 
-import org.epicsquad.kkm.confgserver.service.FileRepository;
+import org.epicsquad.kkm.confgserver.service.FileProviderRepository;
 import org.epicsquad.kkm.confgserver.service.SettingsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,12 +11,12 @@ public class SettingsConfig {
 
 
     @Bean(initMethod = "init")
-    FileRepository fileRepository(GitSettings gitSettings){
-        return new FileRepository(gitSettings);
+    FileProviderRepository fileRepository(GitSettings gitSettings){
+        return new FileProviderRepository(gitSettings);
     }
 
     @Bean
-    SettingsService settingsService(FileRepository fileRepository){
-        return new SettingsService(fileRepository);
+    SettingsService settingsService(FileProviderRepository fileProviderRepository){
+        return new SettingsService(fileProviderRepository);
     }
 }

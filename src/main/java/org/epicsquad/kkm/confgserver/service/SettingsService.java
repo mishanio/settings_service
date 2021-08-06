@@ -17,15 +17,15 @@ import java.util.stream.Collectors;
 
 public class SettingsService {
 
-    private final FileRepository fileRepository;
+    private final FileProviderRepository fileProviderRepository;
     private static final String PROPERTIES_SUFFIX = ".properties";
     private static final String SETTINGS_FOLDER = "settings";
     private final static String IMPORT_PROPERTIES = "_imports";
     private final static Logger log = LoggerFactory.getLogger(SettingsService.class);
 
 
-    public SettingsService(FileRepository fileRepository) {
-        this.fileRepository = fileRepository;
+    public SettingsService(FileProviderRepository fileProviderRepository) {
+        this.fileProviderRepository = fileProviderRepository;
     }
 
     public HierarchyPropertySource getPropertySourceHierarchy(String fileName) {
@@ -40,7 +40,7 @@ public class SettingsService {
     }
 
     public Properties getSettings(String fileName) {
-        File file = fileRepository.getFile(composeFilePath(fileName));
+        File file = fileProviderRepository.getFile(composeFilePath(fileName));
         if (!file.exists()) {
             throw new RuntimeException(fileName + " not found");
         }
@@ -57,49 +57,18 @@ public class SettingsService {
     public void updateSettings(String fileName, SettingsUpdateCommand settingsUpdateCommand) {
         Properties settings = getSettings(fileName);
         Map<String, Object> changedSettings = settingsUpdateCommand.getChangedSettings();
-        for (Map.Entry<String, Object> entry : changedSettings.entrySet()) {
-            settings.put(entry.getKey(), entry.getValue());
-        }
+        settings.putAll(changedSettings);
         String filePath = composeFilePath(fileName);
-        File settingsFile = fileRepository.getFile(filePath);
+        File settingsFile = fileProviderRepository.getFile(filePath);
         try {
             settings.store(new FileOutputStream(settingsFile), null);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        fileRepository.saveFile(filePath, settingsUpdateCommand.getCommitInfo());
+        fileProviderRepository.saveFile(filePath, settingsUpdateCommand.getCommitInfo());
     }
 
     private String composeFilePath(String fileName) {
         return SETTINGS_FOLDER + File.separator + fileName + PROPERTIES_SUFFIX;
     }
-
-
-//    private void initSettings() {
-//        File baseDir = gitSettings.getBaseDir();
-//        String environment = gitSettings.getEnvironment();
-//        Optional<File> maybeDirWithSettings = Arrays.stream(Objects.requireNonNull(baseDir.listFiles()))
-//                .filter(f -> f.isDirectory() && f.getName().equals(environment))
-//                .findFirst();
-//        if (maybeDirWithSettings.isEmpty()) {
-//            log.error("not found directory with settings for {} environment {}", baseDir, environment);
-//        } else {
-//            initSettings(baseDir);
-//        }
-//    }
-
-//    private void initSettings(File baseDir) {
-//        for (File file : Objects.requireNonNull(baseDir.listFiles())) {
-//            if (file.isDirectory()) {
-//                initSettings(file);
-//            } else {
-//                if (file.getName().endsWith(propertiesSuffix)) {
-//                    String absolutePath = file.getAbsolutePath();
-//                    log.debug("reading settings from file: {}", absolutePath);
-//                    String fileName = absolutePath.substring(0, absolutePath.indexOf(propertiesSuffix));
-//                    fileSettingsMap.put(fileName, file);
-//                }
-//            }
-//        }
-//    }
 }
