@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 public class FileProviderRepository {
@@ -37,6 +38,43 @@ public class FileProviderRepository {
         String baseDir = gitSettings.getBaseDir().getAbsolutePath();
         String environment = gitSettings.getEnvironment();
         return new File(baseDir + File.separator + environment + File.separator + fileName);
+    }
+
+    public List<File> listFiles(String directoryName) {
+        pull();
+        String baseDir = gitSettings.getBaseDir().getAbsolutePath();
+        String environment = gitSettings.getEnvironment();
+        File folder = new File(baseDir + File.separator + environment + File.separator + directoryName);
+        if (!folder.isDirectory()) {
+            throw new RuntimeException("file is not a directory");
+        }
+        return List.of(Objects.requireNonNull(folder.listFiles()));
+    }
+
+    public void saveFile(String filePath, CommitInfo commitInfo) {
+        pull();
+        try {
+            Git git = Git.open(gitSettings.getBaseDir());
+            git.add()
+                    .addFilepattern(gitSettings.getEnvironment() + "/" + filePath)
+                    .call();
+            git.commit()
+                    .setMessage(commitInfo.getReason())
+                    .setAuthor(commitInfo.getPrincipal(), commitInfo.getPrincipal())
+                    .call();
+            RemoteAddCommand remoteAddCommand = git.remoteAdd();
+            remoteAddCommand.setName(gitSettings.getBranch());
+            remoteAddCommand.setUri(new URIish(gitSettings.getUri()));
+            remoteAddCommand.call();
+
+            PushCommand pushCommand = git.push();
+            pushCommand.setCredentialsProvider(credentialsProvider);
+            Iterable<PushResult> results = pushCommand.call();
+            results.forEach(result -> result.getRemoteUpdates()
+                    .forEach(update -> log.info("update {}", update.getStatus())));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void pull() {
@@ -75,29 +113,4 @@ public class FileProviderRepository {
         }
     }
 
-    public void saveFile(String filePath, CommitInfo commitInfo) {
-        pull();
-        try {
-            Git git = Git.open(gitSettings.getBaseDir());
-            git.add()
-                    .addFilepattern(gitSettings.getEnvironment() + "/" + filePath)
-                    .call();
-            git.commit()
-                    .setMessage(commitInfo.getReason())
-                    .setAuthor(commitInfo.getPrincipal(), commitInfo.getPrincipal())
-                    .call();
-            RemoteAddCommand remoteAddCommand = git.remoteAdd();
-            remoteAddCommand.setName(gitSettings.getBranch());
-            remoteAddCommand.setUri(new URIish(gitSettings.getUri()));
-            remoteAddCommand.call();
-
-            PushCommand pushCommand = git.push();
-            pushCommand.setCredentialsProvider(credentialsProvider);
-            Iterable<PushResult> results = pushCommand.call();
-            results.forEach(result -> result.getRemoteUpdates()
-                    .forEach(update -> log.info("update {}", update.getStatus())));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
 }

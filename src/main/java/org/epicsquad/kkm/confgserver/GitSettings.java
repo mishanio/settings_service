@@ -22,7 +22,7 @@ public class GitSettings {
     /**
      * local git repository
      */
-    private String baseDir = "/tmp/settings";
+    private String baseDir = "/tmp/_settings";
     /**
      * branch to load settings
      */

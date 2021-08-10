@@ -3,7 +3,10 @@ package org.epicsquad.kkm.confgserver.controller;
 import org.epicsquad.kkm.confgserver.model.HierarchyPropertySource;
 import org.epicsquad.kkm.confgserver.model.SettingsUpdateCommand;
 import org.epicsquad.kkm.confgserver.service.SettingsService;
+import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("api/v1/settings")
@@ -13,6 +16,11 @@ public class SettingsController {
 
     public SettingsController(SettingsService settingsService) {
         this.settingsService = settingsService;
+    }
+
+    @GetMapping("/all")
+    public List<PropertiesPropertySource> getAllSettings() {
+        return settingsService.getAllSetting();
     }
 
     @GetMapping()

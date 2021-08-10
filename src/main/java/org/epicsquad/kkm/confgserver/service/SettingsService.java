@@ -4,15 +4,13 @@ import org.epicsquad.kkm.confgserver.model.HierarchyPropertySource;
 import org.epicsquad.kkm.confgserver.model.SettingsUpdateCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.PropertiesPropertySource;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class SettingsService {
@@ -29,7 +27,7 @@ public class SettingsService {
     }
 
     public HierarchyPropertySource getPropertySourceHierarchy(String fileName) {
-        Properties settings = getSettings(fileName);
+        Properties settings = getSettings(composeFilePath(fileName));
         List<HierarchyPropertySource> importedSources =
                 Arrays.stream(settings.getProperty(IMPORT_PROPERTIES, "").split(","))
                         .map(String::trim)
@@ -39,23 +37,14 @@ public class SettingsService {
         return new HierarchyPropertySource(fileName, settings, importedSources);
     }
 
-    public Properties getSettings(String fileName) {
-        File file = fileProviderRepository.getFile(composeFilePath(fileName));
-        if (!file.exists()) {
-            throw new RuntimeException(fileName + " not found");
-        }
-        try (FileInputStream fileInputStream = new FileInputStream(file)) {
-            Properties props = new Properties();
-            props.load(fileInputStream);
-            return props;
-        } catch (IOException e) {
-            log.error("Exception during reading file: {}", fileName, e);
-            throw new RuntimeException(e);
-        }
+    public List<PropertiesPropertySource> getAllSetting() {
+        return fileProviderRepository.listFiles(SETTINGS_FOLDER).stream()
+                .flatMap(f -> getAllSettingRecursive(f).stream())
+                .collect(Collectors.toList());
     }
 
     public void updateSettings(String fileName, SettingsUpdateCommand settingsUpdateCommand) {
-        Properties settings = getSettings(fileName);
+        Properties settings = getSettings(composeFilePath(fileName));
         Map<String, Object> changedSettings = settingsUpdateCommand.getChangedSettings();
         settings.putAll(changedSettings);
         String filePath = composeFilePath(fileName);
@@ -68,7 +57,48 @@ public class SettingsService {
         fileProviderRepository.saveFile(filePath, settingsUpdateCommand.getCommitInfo());
     }
 
+    private Properties getSettings(String fileName) {
+        File file = fileProviderRepository.getFile(fileName);
+        if (!file.exists()) {
+            throw new RuntimeException(fileName + " not found");
+        }
+        return loadProperties(file);
+    }
+
+    private List<PropertiesPropertySource> getAllSettingRecursive(File file) {
+        List<PropertiesPropertySource> sources = new ArrayList<>();
+        if (file.isDirectory()) {
+            Arrays.stream(Objects.requireNonNull(file.listFiles()))
+                    .forEach(f -> sources.addAll(getAllSettingRecursive(f)));
+        } else {
+            String fileName = stripFilePath(file.getAbsolutePath());
+            Properties settings = loadProperties(file);
+            sources.add(new PropertiesPropertySource(fileName, settings));
+        }
+        return sources;
+    }
+
     private String composeFilePath(String fileName) {
         return SETTINGS_FOLDER + File.separator + fileName + PROPERTIES_SUFFIX;
     }
+
+    private String stripFilePath(String absoluteFileName) {
+        int stripIndex = absoluteFileName.lastIndexOf(SETTINGS_FOLDER) + SETTINGS_FOLDER.length() + "/".length();
+        int endIndex = absoluteFileName.endsWith(PROPERTIES_SUFFIX) ? absoluteFileName.indexOf(PROPERTIES_SUFFIX) :
+                absoluteFileName.length();
+        return absoluteFileName.substring(stripIndex, endIndex);
+    }
+
+    private Properties loadProperties(File file) {
+        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+            Properties props = new Properties();
+            props.load(fileInputStream);
+            return props;
+        } catch (IOException e) {
+            log.error("Exception during reading file: {}", file);
+            throw new RuntimeException(e);
+        }
+    }
+
+
 }
