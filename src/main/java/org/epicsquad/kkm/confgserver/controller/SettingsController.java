@@ -7,6 +7,7 @@ import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Properties;
 
 @RestController
 @RequestMapping("api/v1/settings")
@@ -21,6 +22,11 @@ public class SettingsController {
     @GetMapping("/all")
     public List<PropertiesPropertySource> getAllSettings() {
         return settingsService.getAllSetting();
+    }
+
+    @GetMapping("/descriptions")
+    public Properties getSettingsDescriptions() {
+        return settingsService.getSettingsDescriptions();
     }
 
     @GetMapping()

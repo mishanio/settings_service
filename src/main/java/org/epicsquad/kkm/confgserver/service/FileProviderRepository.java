@@ -40,6 +40,13 @@ public class FileProviderRepository {
         return new File(baseDir + File.separator + environment + File.separator + fileName);
     }
 
+    public File getSettingsDescriptionsFile() {
+        pull();
+        String baseDir = gitSettings.getBaseDir().getAbsolutePath();
+        String environment = gitSettings.getEnvironment();
+        return new File(baseDir + "/settings_descriptions.properties");
+    }
+
     public List<File> listFiles(String directoryName) {
         pull();
         String baseDir = gitSettings.getBaseDir().getAbsolutePath();
@@ -76,6 +83,8 @@ public class FileProviderRepository {
             throw new RuntimeException(e);
         }
     }
+
+
 
     private void pull() {
         try {

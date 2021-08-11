@@ -6,10 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.PropertiesPropertySource;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,6 +39,11 @@ public class SettingsService {
         return fileProviderRepository.listFiles(SETTINGS_FOLDER).stream()
                 .flatMap(f -> getAllSettingRecursive(f).stream())
                 .collect(Collectors.toList());
+    }
+
+    public Properties getSettingsDescriptions() {
+        File settingsDescriptionsFile = fileProviderRepository.getSettingsDescriptionsFile();
+        return loadProperties(settingsDescriptionsFile);
     }
 
     public void updateSettings(String fileName, SettingsUpdateCommand settingsUpdateCommand) {
@@ -90,9 +93,10 @@ public class SettingsService {
     }
 
     private Properties loadProperties(File file) {
-        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+        try (FileInputStream fis = new FileInputStream(file);
+             InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8)) {
             Properties props = new Properties();
-            props.load(fileInputStream);
+            props.load(isr);
             return props;
         } catch (IOException e) {
             log.error("Exception during reading file: {}", file);
